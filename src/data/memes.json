@@ -1,0 +1,10 @@
+{
+    "memes": [
+      {
+        "id": "1",
+        "type": "image",
+        "url": "/starknetchad.png",
+        "title": "Premier meme"
+      }
+    ]
+  }
