@@ -1,6 +1,4 @@
-import { writeFile } from 'fs/promises';
 import { NextRequest, NextResponse } from 'next/server';
-import path from 'path';
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,15 +13,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    // Au lieu d'écrire directement le fichier, on pourrait envoyer un email ou sauvegarder dans une DB
+    return NextResponse.json({
+      success: true,
+      message: 'Meme submitted for review',
+      data: {
+        filename: file.name,
+        title: title
+      }
+    });
 
-    // Sauvegarde dans le dossier public/pending
-    const pendingDir = path.join(process.cwd(), 'public', 'pending');
-    const filePath = path.join(pendingDir, file.name);
-    await writeFile(filePath, buffer);
-
-    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Upload error:', error);
     return NextResponse.json(

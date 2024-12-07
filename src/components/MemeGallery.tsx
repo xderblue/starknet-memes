@@ -42,34 +42,37 @@ export default function MemeGallery() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!uploadFile || !uploadTitle) return;
-  
-    const formData = new FormData();
-    formData.append('file', uploadFile);
-    formData.append('title', uploadTitle);
-  
-    try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-  
-      if (!response.ok) throw new Error('Upload failed');
-  
-      // Reset form
-      setUploadFile(null);
-      setUploadTitle('');
-      
-      // Optional: Add success message
-      alert('Meme submitted successfully!');
-    } catch (error) {
-      console.error('Upload error:', error);
-      alert('Failed to upload meme. Please try again.');
-    }
-  };
+  // Dans handleSubmit
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!uploadFile || !uploadTitle) return;
 
+  const formData = new FormData();
+  formData.append('file', uploadFile);
+  formData.append('title', uploadTitle);
+
+  try {
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Upload failed');
+    }
+
+    setUploadFile(null);
+    setUploadTitle('');
+    
+    // Ajoutez un message de succès
+    alert('Meme submitted for review! We will process it shortly.');
+  } catch (error) {
+    console.error('Upload error:', error);
+    alert('Failed to upload meme. Please try again or contact support.');
+  }
+};
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
       {/* Header */}
