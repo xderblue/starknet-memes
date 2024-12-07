@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Upload, Twitter } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import memesData from '@/data/memes.json';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -14,6 +13,15 @@ interface ErrorBoundaryProps {
 
 interface ErrorType extends Error {
   message: string;
+}
+
+interface Meme {
+  _id: string;
+  title: string;
+  url: string;
+  type: 'image' | 'video' | 'gif';
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: Date;
 }
 
 const ErrorBoundary: React.FC<ErrorBoundaryProps> = ({ children }) => (
@@ -28,7 +36,23 @@ export default function MemeGallery() {
   const [selectedType, setSelectedType] = useState('all');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadTitle, setUploadTitle] = useState('');
-  const [memes] = useState(memesData.memes);
+  const [memes, setMemes] = useState<Meme[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/memes')
+      .then(res => res.json())
+      .then(data => {
+        setMemes(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Failed to fetch memes:', err);
+        setError('Failed to load memes');
+        setLoading(false);
+      });
+  }, []);
 
   const filteredMemes = memes.filter(meme => 
     meme.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
@@ -42,39 +66,39 @@ export default function MemeGallery() {
     }
   };
 
-  // Dans handleSubmit
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!uploadFile || !uploadTitle) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uploadFile || !uploadTitle) return;
 
-  const formData = new FormData();
-  formData.append('file', uploadFile);
-  formData.append('title', uploadTitle);
+    const formData = new FormData();
+    formData.append('file', uploadFile);
+    formData.append('title', uploadTitle);
 
-  try {
-    const response = await fetch('/api/upload', {
-      method: 'POST',
-      body: formData,
-    });
+    try {
+      const response = await fetch('/api/memes', {
+        method: 'POST',
+        body: formData,
+      });
 
-    const data = await response.json();
+      if (!response.ok) {
+        throw new Error('Failed to upload meme');
+      }
 
-    if (!response.ok) {
-      throw new Error(data.error || 'Upload failed');
+      const newMeme = await response.json();
+      
+      // Reset form
+      setUploadFile(null);
+      setUploadTitle('');
+      
+      alert('Meme submitted successfully! It will be reviewed shortly.');
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Failed to upload meme. Please try again.');
     }
+  };
 
-    setUploadFile(null);
-    setUploadTitle('');
-    
-    // Ajoutez un message de succès
-    alert('Meme submitted for review! We will process it shortly.');
-  } catch (error) {
-    console.error('Upload error:', error);
-    alert('Failed to upload meme. Please try again or contact support.');
-  }
-};
   return (
-    <div className="min-h-screen bg-[#FAFAFA]">
+    <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white border-b border-gray-100 backdrop-blur-sm bg-white/80">
         <div className="max-w-7xl mx-auto px-4 py-3">
@@ -162,38 +186,44 @@ const handleSubmit = async (e: React.FormEvent) => {
 
       {/* Memes Grid */}
       <div className="max-w-7xl mx-auto p-4">
-        <div className="columns-2 md:columns-3 lg:columns-4 gap-6">
-          {filteredMemes.map(meme => (
-            <div key={meme.id} className="break-inside-avoid mb-6">
-              <Card className="bg-white hover:shadow-lg transition-all duration-300 overflow-hidden">
-                <CardContent className="p-0 relative group">
-                  {meme.type === 'video' ? (
-                    <video 
-                      src={meme.url} 
-                      controls 
-                      className="w-full h-auto"
-                    />
-                  ) : (
-                    <div className="relative">
-                      <img
-                        src={meme.url}
-                        alt={meme.title || "meme"}
+        {loading ? (
+          <div className="text-center py-10">Loading memes...</div>
+        ) : error ? (
+          <div className="text-center py-10 text-red-500">{error}</div>
+        ) : (
+          <div className="columns-2 md:columns-3 lg:columns-4 gap-6">
+            {filteredMemes.map(meme => (
+              <div key={meme._id} className="break-inside-avoid mb-6">
+                <Card className="bg-white hover:shadow-lg transition-all duration-300 overflow-hidden">
+                  <CardContent className="p-0 relative group">
+                    {meme.type === 'video' ? (
+                      <video 
+                        src={meme.url} 
+                        controls 
                         className="w-full h-auto"
                       />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end">
-                        <div className="p-4 text-white w-full">
-                          <p className="text-sm font-medium truncate">
-                            {meme.title}
-                          </p>
+                    ) : (
+                      <div className="relative">
+                        <img
+                          src={meme.url}
+                          alt={meme.title}
+                          className="w-full h-auto"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end">
+                          <div className="p-4 text-white w-full">
+                            <p className="text-sm font-medium truncate">
+                              {meme.title}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          ))}
-        </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
