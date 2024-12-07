@@ -12,8 +12,8 @@ interface ErrorBoundaryProps {
  children: React.ReactNode;
 }
 
-type ErrorType = {
- message: string;
+interface ErrorType extends Error {
+  message: string;
 }
 
 const ErrorBoundary: React.FC<ErrorBoundaryProps> = ({ children }) => (
